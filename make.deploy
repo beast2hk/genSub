@@ -1,0 +1,7 @@
+VPATH=$(CURRPATH)/$(SRCPATH)
+DIRS=$(subst $(VPATH)/,,$(shell find $(VPATH) -type d -mindepth 1))
+
+all:
+	mkdir -p $(CURRPATH)/$(DEPLOYPATH)/lib $(addprefix $(CURRPATH)/$(DEPLOYPATH)/include/, $(DIRS))
+	rsync -rv  --include="*hpp" --include="*/" --exclude="*" $(CURRPATH)/$(SRCPATH)/ $(CURRPATH)/$(DEPLOYPATH)/include/
+	cp $(CURRPATH)/build/libr/*.a $(CURRPATH)/$(DEPLOYPATH)/lib/

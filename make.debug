@@ -1,0 +1,12 @@
+VPATH=$(CURRPATH)/$(SRCPATH)
+COMMON_FLAGS+= -DDEBUG
+CPPFLAGS+= $(COMMON_FLAGS)
+#GCH_OBJ=$(GCH).gch
+
+all: $(TARGET) 
+ 
+#$(GCH_OBJ): $(GCH)
+#	$(CXX) -c -o $@ $(VPATH)/$(GCH) $(COMMON_FLAGS)
+
+$(TARGET): $(GCH_OBJ) $(OBJS) $(TARGET_OBJS)
+	$(CXX) -o $@ $(OBJS) bin/$@.o $(CPPFLAGS) $(LDFLAGS)

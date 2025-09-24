@@ -1,0 +1,13 @@
+VPATH=$(CURRPATH)/$(SRCPATH)
+COMMON_FLAGS+= -DDEBUG
+CPPFLAGS+= $(COMMON_FLAGS)
+#GCH_OBJ=$(GCH).gch
+
+all: $(LIBRARY_NAME)
+ 
+#$(GCH_OBJ): $(GCH)
+#	$(CXX) -c -o $@ $(VPATH)/$(GCH) $(COMMON_FLAGS)
+
+$(LIBRARY_NAME): $(GCH_OBJ) $(OBJS) $(TARGET_OBJS)
+	rm -f $@
+	$(AR) rcs $@ $(OBJS)
