@@ -1,0 +1,19 @@
+{  
+    "filename" : "sub.srt", 
+    "style"    : [ { "name"  : "default", 
+                     "font"  : "Noto Sans TC Medium", 
+                     "size"  : 60, 
+                     "color" : "white", 
+                     "attr"  : [ [ "outline", "black", 10 ] ] 
+                   }, 
+                   { "name"  : "intro", 
+                     "font"  : "CanvaPlayfulBoldTC", 
+                     "size"  : 100, 
+                     "color" : "gradient:rgb(143,88,251)-rgb(103,224,229)", 
+                     "attr"  : [ [ "outline", "black", 5 ], 
+                                 [ "glow", "orange", 3 ], 
+                                 [ "outline", "white", 10 ] ] 
+                   } 
+                 ] 
+}
+

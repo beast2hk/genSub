@@ -24,7 +24,7 @@ private:
 public:
     SubtitleWord(void);
     SubtitleWord(std::string text);
-    virtual std::string getText() const;
+    virtual const std::string& getText() const;
     ~SubtitleWord(void);
 };
 
@@ -56,12 +56,13 @@ private:
 public:
     long int getStartTime() const;          //returns starting time in ms
     long int getEndTime() const;            //returns ending time in ms
-    std::string getText() const;            //returns subtitle text as present in .srt file
+    const std::string& getText() const;            //returns subtitle text as present in .srt file
 
     int getSubNo() const;              //returns subtitle number
     std::string getStartTimeString() const; //returns sarting time as present in .srt file
     std::string getEndTimeString() const;   //returns ending time as present in .srt file
     bool getIgnoreStatus() const;           //returns status, whether the subtitle is ignorable or not after processing
+    const char* getRawText() const;
     std::string getDialogue(bool keepHTML = 0, bool doNotIgnoreNonDialogues = 0,  bool doNotRemoveSpeakerNames = 0); //returns processed subtitle
     int getSpeakerCount() const;            //return speaker count
     int getNonDialogueCount() const;        //return non dialogue words count
@@ -106,6 +107,7 @@ public:
     std::string getFileData();
     SubtitleParser(void);
     virtual ~SubtitleParser(void);
+    float getDuration() const;
 };
 
 class SubtitleParserFactory

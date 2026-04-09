@@ -68,6 +68,17 @@ SubtitleParser::SubtitleParser(void)
 SubtitleParser::~SubtitleParser(void)
 {}
 
+float SubtitleParser::getDuration() const {
+    float ret = 0;
+    for(auto it : _subtitles) {
+        float endTime = it->getEndTime();
+        if (endTime > ret) {
+            ret = endTime;
+        }
+    }
+    return ret;
+}
+
 //3. SubRipParser class
 
 SubRipParser::SubRipParser(void)
@@ -149,6 +160,8 @@ SubRipParser::~SubRipParser(void)
 {
 }
 
+
+
 //4. SubtitleItem class
 
 SubtitleItem::SubtitleItem(void)
@@ -205,7 +218,7 @@ long int SubtitleItem::getEndTime() const
     return _endTime;
 }
 
-std::string SubtitleItem::getText() const
+const std::string& SubtitleItem::getText() const
 {
     return _text;
 }
@@ -450,6 +463,10 @@ void SubtitleItem::extractInfo(bool keepHTML, bool doNotIgnoreNonDialogues, bool
     }
 }
 
+const char* SubtitleItem::getRawText() const {
+    return _text.c_str();
+}
+
 std::string SubtitleItem::getDialogue(bool keepHTML, bool doNotIgnoreNonDialogues,  bool doNotRemoveSpeakerNames)
 {
     if(_justDialogue.empty())
@@ -539,7 +556,7 @@ SubtitleWord::SubtitleWord(std::string text)
     _text = text;
 }
 
-std::string SubtitleWord::getText() const
+const std::string& SubtitleWord::getText() const
 {
     return _text;
 }

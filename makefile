@@ -1,7 +1,10 @@
 CURRPATH=$(shell pwd)
-COMMON_FLAGS=-I${CURRPATH}/genSub -I${CURRPATH}/../Be/deploy/include -I`brew --prefix`/include `pkgconf --cflags libuv`
+COMMON_FLAGS=-I${CURRPATH}/genSub -I${CURRPATH}/../Be/deploy/include -I`brew --prefix`/include `pkgconf --cflags libuv tinyxml2 fontconfig Magick++`
 CPPFLAGS= -std=c++20
-LDFLAGS=-L`brew --prefix`/lib `pkgconf --libs libuv` -ljson_spirit
+LDFLAGS=-L`brew --prefix`/lib `pkgconf --libs libuv tinyxml2 fontconfig` -ljson_spirit \
+/Users/tommyto/Projects/srt2xml/external/lib/libMagick++-7.Q8.dylib \
+/Users/tommyto/Projects/srt2xml/external/lib/libMagickCore-7.Q8.dylib \
+/Users/tommyto/Projects/srt2xml/external/lib/libMagickWand-7.Q8.dylib 
 
 DEPLOYPATH=deploy
 BUILDPATH=build
