@@ -7,6 +7,7 @@
 
 #include "Style.hpp"
 #include "FontManager.hpp"
+#include <filesystem>
 #include <tuple>
 
 Be::StyleItem::StyleItem(const std::string &name) {
@@ -39,10 +40,14 @@ const std::string& Be::StyleItem::getName() const {
     return name;
 }
 const std::string& Be::StyleItem::getFontPath() const {
-    auto manager = FontManager::getInstance();
-    auto font_desc = manager->load(font);
-    // assume there must be a font
-    return font_desc->getPath();
+    if (std::filesystem::exists(font)) {
+        return font;
+    } else {
+        auto manager = FontManager::getInstance();
+        auto font_desc = manager->load(font);
+        // assume there must be a font
+        return font_desc->getPath();
+    }
 }
 
 const std::string& Be::StyleItem::getFontFamily() const {

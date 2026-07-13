@@ -42,32 +42,34 @@ int main(int argc, const char * argv[]) {
   std::string str;
   bool bWriteImage, bMissingImgOnly;
   float dur;
-  int32_t img_total, img_done;
+  int32_t img_total, img_done, diag_num;
     
-//    string my_str   = "[highlight]你好嗎？";
-//    regex  attr_express(R"(^\[[a-zA-Z1-9]+\])");
-//    smatch sm;
-//    
-//
-//    regex_search(my_str, sm, attr_express);
-//    if (sm.size() > 0) {
-//        cout << "Matched" << sm.str(0) << endl;
-//        cout << sm.str(0).substr(1, sm.str(0).length() - 2);
-//    } else {
-//        cout << "None matched" << endl;
-//    }
-//    
-//    
-//    return 1;
+  //    string my_str   = "[highlight]你好嗎？";
+  //    regex  attr_express(R"(^\[[a-zA-Z1-9]+\])");
+  //    smatch sm;
+  //    
+  //
+  //    regex_search(my_str, sm, attr_express);
+  //    if (sm.size() > 0) {
+  //        cout << "Matched" << sm.str(0) << endl;
+  //        cout << sm.str(0).substr(1, sm.str(0).length() - 2);
+  //    } else {
+  //        cout << "None matched" << endl;
+  //    }
+  //    
+  //    
+  //    return 1;
     
     
   bWriteImage     = true;
   bMissingImgOnly = false;
+  diag_num        = 0;
     
   if (argc < 2) {
-    cout << argv[0] << " [-x] [-s] <config json>" << endl;
+    cout << argv[0] << " [-x] [-s] [-n <number>] <config json>" << endl;
     cout << "-x write xml only" << endl;
     cout << "-s skip existing png" << endl;
+    cout << "-n generate dialog <number> only" << endl;
     return 1;
   }
     
@@ -76,6 +78,17 @@ int main(int argc, const char * argv[]) {
       bWriteImage = false;
     } else if (strcmp(argv[a], "-s") == 0) {
       bMissingImgOnly = true;
+    } else if (strcmp(argv[a], "-n") == 0) {
+      cout << "hi" << endl;
+      if ((a + 1) == argc) {
+        cerr << "Invalid number of parameters" << endl;
+        return 1;
+      }
+      diag_num = std::atoi(argv[a+1]);
+      if (diag_num == 0 || diag_num < 0) {
+        cerr << "Invalid dialog number format" << endl;
+        return 1;
+      }
     } else {
       path = argv[a];
       if (!path.has_extension() || path.extension() != ".json") {
@@ -214,7 +227,7 @@ int main(int argc, const char * argv[]) {
   cout << "ok" << endl;
   cout << "SRT:" << srt_path << endl;
     
-    // cout << "Abc" << CLS_LINE << "\r" ;
+  // cout << "Abc" << CLS_LINE << "\r" ;
     
   subtitles = Be::SubRipParser::parse(srt_path);
 
@@ -228,67 +241,72 @@ int main(int argc, const char * argv[]) {
   xml->setProjectName("Subtitle.fcpxml");
   xml->setResolution(_FcpXML::UHD);
     
-    dur = 0;
-    for(auto it : subtitles) {
-        float endTime = it->getEndTime();
-        if (endTime > dur) {
-            dur = endTime;
-        }
+  dur = 0;
+  for(auto it : subtitles) {
+    float endTime = it->getEndTime();
+    if (endTime > dur) {
+      dur = endTime;
     }
+  }
 
-    xml->setDuration(dur);
+  xml->setDuration(dur);
     
   if (bWriteImage) {
-      char    buff1[200], buff2[200];
-      int32_t sub_offset;
-      auto   style = Style::getInstance()->load("default");
-      regex  attr_express(R"(^\[[a-zA-Z1-9]+\])");
-      string final_str, next_style;
+    char    buff1[200], buff2[200];
+    int32_t sub_offset;
+    auto   style = Style::getInstance()->load("default");
+    regex  attr_express(R"(^\[[a-zA-Z1-9]+\])");
+    string final_str, next_style;
 
-      if (!style) {
-          cerr << "Default style not found" << endl;
-          exit(1);
-      }
+    if (!style) {
+      cerr << "Default style not found" << endl;
+      exit(1);
+    }
       
-      img_total = img_done = 0;
+    img_total = img_done = 0;
         
-      UVLoop loop = UVLoop::getInstance();
-      Magick::InitializeMagick(nullptr);
+    UVLoop loop = UVLoop::getInstance();
+    Magick::InitializeMagick(nullptr);
         
-      Magick::TypeMetric typeMetrics;
-      Magick::Image      image;
+    Magick::TypeMetric typeMetrics;
+    Magick::Image      image;
         
-      image.font(style->getFontPath());
-      image.fontPointsize(style->getSize());
-      image.strokeColor("none");
-      image.strokeWidth(0);
+    image.font(style->getFontPath());
+    image.fontPointsize(style->getSize());
+    image.strokeColor("none");
+    image.strokeWidth(0);
         
-      for(auto s : subtitles) {
-          snprintf(buff1, 100, "caption_%04d", s->getSubNo());
-          snprintf(buff2, 100, "caption_%04d.png", s->getSubNo());
-          xml->addCaption(buff1, buff2, s->getStartTime(), s->getEndTime() - s->getStartTime());
-            
-          if (bMissingImgOnly &&
-              filesystem::exists(buff2)) { continue; }
-          smatch sm;
-          regex_search(s->getText(), sm, attr_express);
-          if (sm.size() > 0 && sm.str(0).length() > 2) {
-              sub_offset = (int32_t)(sm.str(0).length() - 2);
-              final_str  = s->getText().substr(sub_offset + 2);
-              next_style = sm.str(0).substr(1, sub_offset);
-              if (!Style::getInstance()->contains(next_style)) {
-                  next_style = "default";
-              }
-          } else {
-              next_style = "default";
-              final_str = s->getText();
-          }
+    for(auto s : subtitles) {
+      snprintf(buff1, 100, "caption_%04d", s->getSubNo());
+      snprintf(buff2, 100, "caption_%04d.png", s->getSubNo());
+      xml->addCaption(buff1, buff2, s->getStartTime(), s->getEndTime() - s->getStartTime());
+        
+        if (diag_num == 0) {
+            if (bMissingImgOnly &&
+                filesystem::exists(buff2)) { continue; }
+        } else {
+            if (diag_num != s->getSubNo()) continue;
+        }
+        
+      smatch sm;
+      regex_search(s->getText(), sm, attr_express);
+      if (sm.size() > 0 && sm.str(0).length() > 2) {
+        sub_offset = (int32_t)(sm.str(0).length() - 2);
+        final_str  = s->getText().substr(sub_offset + 2);
+        next_style = sm.str(0).substr(1, sub_offset);
+        if (!Style::getInstance()->contains(next_style)) {
+          next_style = "default";
+        }
+      } else {
+        next_style = "default";
+        final_str = s->getText();
+      }
           
-          if (style->getName() != next_style) {
-              style = Style::getInstance()->load(next_style);
-              image.font(style->getFontPath());
-              image.fontPointsize(style->getSize());
-          }
+      if (style->getName() != next_style) {
+        style = Style::getInstance()->load(next_style);
+        image.font(style->getFontPath());
+        image.fontPointsize(style->getSize());
+      }
             
       image.fontTypeMetricsMultiline(final_str, &typeMetrics);
       image.size(Magick::Geometry(typeMetrics.textWidth(), typeMetrics.textHeight()));
@@ -306,46 +324,46 @@ int main(int argc, const char * argv[]) {
       std::get<1>(*payload) = style.get();
       std::get<2>(*payload) = new Text(image);
       loop->queueWork([payload] {
-          if (!std::get<1>(*payload)->isBasicColor()) {
-              std::get<2>(*payload)->effect(std::get<1>(*payload)->getColor());
-          }
+        if (!std::get<1>(*payload)->isBasicColor()) {
+          std::get<2>(*payload)->effect(std::get<1>(*payload)->getColor());
+        }
 
-          for(auto &attr : std::get<1>(*payload)->attrs) {
-              switch (std::get<0>(attr)) {
-                  case Be::ATTR_OUTLINE:
-                      std::get<2>(*payload)->outline(std::get<1>(attr), std::get<2>(attr));
-                      break;
+        for(auto &attr : std::get<1>(*payload)->attrs) {
+          switch (std::get<0>(attr)) {
+          case Be::ATTR_OUTLINE:
+            std::get<2>(*payload)->outline(std::get<1>(attr), std::get<2>(attr));
+            break;
                       
-                  case Be::ATTR_GLOW:
-                      std::get<2>(*payload)->glow(std::get<1>(attr), std::get<2>(attr));
-                      break;
-              }
+          case Be::ATTR_GLOW:
+            std::get<2>(*payload)->glow(std::get<1>(attr), std::get<2>(attr));
+            break;
           }
+        }
           
-          Magick::Image frame("1920x1080", "none");
-          int32_t offx = int32_t(frame.columns() - std::get<2>(*payload)->width()) / 2;
-          int32_t offy = int32_t(frame.rows()    - std::get<2>(*payload)->height() - 50);
-          frame.composite(std::get<2>(*payload)->image, offx, offy, Magick::OverCompositeOp);
+        Magick::Image frame("1920x1080", "none");
+        int32_t offx = int32_t(frame.columns() - std::get<2>(*payload)->width()) / 2;
+        int32_t offy = int32_t(frame.rows()    - std::get<2>(*payload)->height() - 50);
+        frame.composite(std::get<2>(*payload)->image, offx, offy, Magick::OverCompositeOp);
 
-          frame.magick("png32");
-          frame.write(std::get<0>(*payload));
+        frame.magick("png32");
+        frame.write(std::get<0>(*payload));
           
-          delete payload;
-          //std::get<2>(*payload)->save(std::get<0>(*payload));
+        delete payload;
+        //std::get<2>(*payload)->save(std::get<0>(*payload));
       }, [&img_total, &img_done] {
-          if (img_total > 0) {
-              img_done++;
-              cout << CLS_LINE << "\r";
-              cout << img_done << "/" << img_total;
-              cout.flush();
-          }
+        if (img_total > 0) {
+          img_done++;
+          cout << CLS_LINE << "\r";
+          cout << img_done << "/" << img_total;
+          cout.flush();
+        }
       });
-          img_total++;
+      img_total++;
     }
     loop->run();
-      cout << endl;
+    cout << endl;
   }
 
-    xml->save();
+  xml->save();
   return 0;
 }
