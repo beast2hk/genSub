@@ -99,6 +99,22 @@ void Text::outline(const std::string color, uint32_t width) {
   }
 }
 
+std::tuple<int32_t, int32_t, std::shared_ptr<Canvas>> Text::createRectBackground(const std::string color, uint32_t padding) {
+    uint32_t xoffset, yoffset;
+    Geometry boxsize = image.boundingBox();
+    std::shared_ptr<Canvas> canvas(new Canvas(boxsize.width() + 2 * padding, boxsize.height() + 2 * padding));
+    
+    canvas->stroke(0, "none");
+    canvas->fillColor(color);
+    canvas->image.draw(DrawableRectangle(0, 0, canvas->width(), canvas->height()));
+    
+    xoffset = boxsize.xOff() - padding;
+    yoffset = boxsize.yOff() - padding;
+    
+    return make_tuple(xoffset, yoffset, canvas);
+    
+}
+
 void Text::glow(const std::string color, uint32_t width) {
   char kernel[100];
 
@@ -138,4 +154,38 @@ void Text::glow(const std::string color, uint32_t width) {
   } catch (Magick::Exception &exception) {
     //cout << "Magick Exception : " << exception.what() << endl;
   }
+}
+
+
+Text* Text::createFromPango(const std::string str, const std::string color) {
+    Image texture_mask, imgText;
+    
+    imgText.read(str);
+    
+    imgText.write("check.png");
+    imgText.negate();
+
+    if (color.rfind("gradient:", 0) == 0) {
+        texture_mask.size(Geometry(imgText.columns(), imgText.rows()));
+        texture_mask.read(color);
+        texture_mask.alpha(false);
+        //texture_mask.composite(imgText, Geometry("+0+0"), CopyAlphaCompositeOp);
+        texture_mask.composite(imgText, 0, 0, CopyAlphaCompositeOp);
+        return new Text(texture_mask);
+    } if (color.rfind("img:", 0) == 0) {
+        texture_mask.read(color.substr(4));
+        auto geo = Geometry(imgText.columns(), imgText.rows());
+        geo.aspect(true);
+        texture_mask.resize(geo);
+        texture_mask.alpha(false);
+        //texture_mask.composite(imgText, Geometry("+0+0"), CopyAlphaCompositeOp);
+        texture_mask.composite(imgText, 0, 0, CopyAlphaCompositeOp);
+        return new Text(texture_mask);
+    } else {
+        // Basic plain color
+        texture_mask = Image(Geometry(imgText.columns(), imgText.rows()), color);
+        texture_mask.alpha(false);
+        texture_mask.composite(imgText, 0, 0, CopyAlphaCompositeOp);
+        return new Text(texture_mask);
+    }
 }

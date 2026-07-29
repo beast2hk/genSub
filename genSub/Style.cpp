@@ -98,3 +98,13 @@ std::shared_ptr<Be::StyleItem> Be::Style::load(const std::string &name) {
         return std::shared_ptr<Be::StyleItem>();
     }
 }
+
+std::shared_ptr<Be::StyleItem> Be::Style::load(const std::string &name, const std::string &alternative) {
+    if (styles.contains(name)) {
+        return std::get<1>(*styles.find(name));
+    } else if (styles.contains(alternative)) {
+        return std::get<1>(*styles.find(alternative));
+    } else {
+        return std::shared_ptr<Be::StyleItem>();
+    }
+}

@@ -18,7 +18,9 @@ namespace Be {
 
 enum Attr {
     ATTR_OUTLINE,
-    ATTR_GLOW
+    ATTR_GLOW,
+    ATTR_BG_ROUNDRECT,
+    ATTR_BG_RECT
 };
 
 class StyleItem {
@@ -54,6 +56,7 @@ public:
     bool contains(const std::string &name) const;
     std::shared_ptr<StyleItem> create(const std::string &name);
     std::shared_ptr<StyleItem> load(const std::string &name);
+    std::shared_ptr<StyleItem> load(const std::string &name, const std::string &alternative);
 //    std::shared_ptr<StyleItem> get(const std::string &name);
 
 };

@@ -41,6 +41,15 @@ void Canvas::fillColor(std::string color) {
   }
 }
 
+void Canvas::stroke(uint32_t width, std::string color) {
+    try {
+        image.strokeWidth(width);
+      image.strokeColor(color);
+    } catch (...) {
+        cerr << "Canvas::strokeColor caught an exception" << endl;
+    }
+}
+
 void Canvas::roundRectangle(uint32_t left, uint32_t top,
                             uint32_t width, uint32_t height, uint32_t radius) {
   try {
@@ -50,8 +59,12 @@ void Canvas::roundRectangle(uint32_t left, uint32_t top,
   }
 }
 
-void Canvas::composite(const Canvas &src, uint32_t x, uint32_t y) {
+void Canvas::composite(const Canvas& src, uint32_t x, uint32_t y) {
   image.composite(src.image, x, y, OverCompositeOp);
+}
+
+void Canvas::composite(const Canvas* src, uint32_t x, uint32_t y) {
+  image.composite(src->image, x, y, OverCompositeOp);
 }
 
 void Canvas::save(std::string filename) {

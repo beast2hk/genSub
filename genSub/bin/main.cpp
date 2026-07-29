@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <tuple>
@@ -32,7 +33,11 @@ using namespace Be;
 typedef std::tuple<std::string,      // filename
                    const StyleItem*, // Text style
                    Text*             // Text image
-                   > Payload;
+                   > Payload1;
+
+typedef std::tuple<std::string,                    // filename
+                   vector<tuple<string, string>>*  // <style, text> tuple
+                   > Payload2;
 
 int main(int argc, const char * argv[]) {
   ifstream ifs;
@@ -44,21 +49,7 @@ int main(int argc, const char * argv[]) {
   float dur;
   int32_t img_total, img_done, diag_num;
     
-  //    string my_str   = "[highlight]你好嗎？";
-  //    regex  attr_express(R"(^\[[a-zA-Z1-9]+\])");
-  //    smatch sm;
-  //    
-  //
-  //    regex_search(my_str, sm, attr_express);
-  //    if (sm.size() > 0) {
-  //        cout << "Matched" << sm.str(0) << endl;
-  //        cout << sm.str(0).substr(1, sm.str(0).length() - 2);
-  //    } else {
-  //        cout << "None matched" << endl;
-  //    }
-  //    
-  //    
-  //    return 1;
+  vector<tuple<string, string>> *styled_text;
     
     
   bWriteImage     = true;
@@ -84,7 +75,8 @@ int main(int argc, const char * argv[]) {
         cerr << "Invalid number of parameters" << endl;
         return 1;
       }
-      diag_num = std::atoi(argv[a+1]);
+      a++;
+      diag_num = std::atoi(argv[a]);
       if (diag_num == 0 || diag_num < 0) {
         cerr << "Invalid dialog number format" << endl;
         return 1;
@@ -218,8 +210,25 @@ int main(int argc, const char * argv[]) {
           return 0;
         }
         style->addAttr(ATTR_GLOW, item.at(1).get_str(), item.at(2).get_int());
+      } else if (attr_name == "background") {
+        if (item.size() < 4 ||
+            item.at(1).type() != json_spirit::str_type ||
+            item.at(2).type() != json_spirit::str_type ||
+            item.at(3).type() != json_spirit::int_type) {
+          cerr << "Invalid background parameters" << endl;
+          return 0;
+        }
+        if (item.at(1).get_str() == "roundrect") {
+          style->addAttr(ATTR_BG_ROUNDRECT, item.at(2).get_str(), item.at(3).get_int());
+        } else if (item.at(1).get_str() == "rect") {
+          style->addAttr(ATTR_BG_RECT, item.at(2).get_str(), item.at(3).get_int());
+        } else {
+          cerr << "Invalid background parameters" << endl;
+          return 0;
+        }
       } else {
         cerr << "Unknown attr" << endl;
+        return 0;
       }
     }
   }
@@ -255,7 +264,9 @@ int main(int argc, const char * argv[]) {
     char    buff1[200], buff2[200];
     int32_t sub_offset;
     auto   style = Style::getInstance()->load("default");
-    regex  attr_express(R"(^\[[a-zA-Z1-9]+\])");
+    regex  attr_express1(R"(^\[[a-zA-Z1-9]+\])");
+    regex  attr_express1a(R"(\[[a-zA-Z1-9]+\])");
+    regex  attr_express2(R"(^\[[a-zA-Z1-9]+\][^\[]*)");
     string final_str, next_style;
 
     if (!style) {
@@ -271,99 +282,232 @@ int main(int argc, const char * argv[]) {
     Magick::TypeMetric typeMetrics;
     Magick::Image      image;
         
+    setenv("PANGOCAIRO_BACKEND", "fontconfig", 1);
     image.font(style->getFontPath());
     image.fontPointsize(style->getSize());
     image.strokeColor("none");
     image.strokeWidth(0);
         
     for(auto s : subtitles) {
+      smatch sm;
+      string diag_str;
+
+      styled_text = new vector<tuple<string, string>>();
+        
       snprintf(buff1, 100, "caption_%04d", s->getSubNo());
       snprintf(buff2, 100, "caption_%04d.png", s->getSubNo());
+        
       xml->addCaption(buff1, buff2, s->getStartTime(), s->getEndTime() - s->getStartTime());
         
-        if (diag_num == 0) {
-            if (bMissingImgOnly &&
-                filesystem::exists(buff2)) { continue; }
-        } else {
-            if (diag_num != s->getSubNo()) continue;
-        }
+      if (diag_num == 0) {
+        if (bMissingImgOnly &&
+            filesystem::exists(buff2)) { continue; }
+      } else {
+        if (diag_num != s->getSubNo()) continue;
+      }
         
-      smatch sm;
-      regex_search(s->getText(), sm, attr_express);
-      if (sm.size() > 0 && sm.str(0).length() > 2) {
-        sub_offset = (int32_t)(sm.str(0).length() - 2);
-        final_str  = s->getText().substr(sub_offset + 2);
-        next_style = sm.str(0).substr(1, sub_offset);
-        if (!Style::getInstance()->contains(next_style)) {
-          next_style = "default";
-        }
+      //regex_search(s->getText(), sm, attr_express1);
+        
+      if (s->getText()[0] != '[') {
+        diag_str = std::string("[default]") + s->getText();
       } else {
-        next_style = "default";
-        final_str = s->getText();
+        diag_str = s->getText();
       }
-          
-      if (style->getName() != next_style) {
-        style = Style::getInstance()->load(next_style);
-        image.font(style->getFontPath());
-        image.fontPointsize(style->getSize());
+        
+      while(regex_search(diag_str, sm, attr_express2)) {
+        auto pos   = sm.str().find("]");
+        auto style = sm.str().substr(1, pos - 1);
+        auto text  = sm.str().substr(pos + 1);
+        styled_text->push_back(make_tuple(style, text));
+        diag_str   = sm.suffix();
       }
-            
-      image.fontTypeMetricsMultiline(final_str, &typeMetrics);
-      image.size(Magick::Geometry(typeMetrics.textWidth(), typeMetrics.textHeight()));
-      image.read("xc:none");
-            
-      if (style->isBasicColor()) {
-        image.fillColor(style->getColor());
-      } else {
-        image.fillColor("black");
+        
+      //        for(auto seg : styled_text) {
+      //            cout << "style:" << std::get<0>(seg) << endl;
+      //            cout << "text :" << std::get<1>(seg) << endl;
+      //        }
+      //        return 1;
+        
+      //      if (sm.size() > 0 && sm.str(0).length() > 2) {
+      //        sub_offset = (int32_t)(sm.str(0).length() - 2);
+      //        final_str  = s->getText().substr(sub_offset + 2);
+      //        next_style = sm.str(0).substr(1, sub_offset);
+      //        if (!Style::getInstance()->contains(next_style)) {
+      //          next_style = "default";
+      //        }
+      //      } else {
+      //        next_style = "default";
+      //        final_str = s->getText();
+      //      }
+        
+      if (styled_text->empty()) {
+        cerr << "Text not found in line" << s->getSubNo() << endl;
+        delete styled_text;
+        return 1;
       }
-      image.annotate(final_str, Magick::CenterGravity);
-            
-      Payload *payload = new Payload();
-      std::get<0>(*payload) = buff2;
-      std::get<1>(*payload) = style.get();
-      std::get<2>(*payload) = new Text(image);
+        
+      Payload2 *payload = new Payload2();
+      get<0>(*payload)  = buff2;
+      get<1>(*payload)  = styled_text;
+        
       loop->queueWork([payload] {
-        if (!std::get<1>(*payload)->isBasicColor()) {
-          std::get<2>(*payload)->effect(std::get<1>(*payload)->getColor());
-        }
+        auto *v = get<1>(*payload);
+        tuple<int32_t, int32_t> bg_offset;
+        int32_t offx, offy;
 
-        for(auto &attr : std::get<1>(*payload)->attrs) {
-          switch (std::get<0>(attr)) {
-          case Be::ATTR_OUTLINE:
-            std::get<2>(*payload)->outline(std::get<1>(attr), std::get<2>(attr));
-            break;
-                      
-          case Be::ATTR_GLOW:
-            std::get<2>(*payload)->glow(std::get<1>(attr), std::get<2>(attr));
-            break;
+          offx = offy = 0;
+        shared_ptr<Text> text_layer;   // default offset is 0,0
+        shared_ptr<Canvas> bg_layer, frame;
+
+        frame.reset(new Canvas(1920, 1080));
+        bg_offset = make_tuple(0, 0);
+          
+        for(auto i = 0; i < v->size(); i++) {
+          stringstream buf;
+          text_layer.reset();
+          bg_layer.reset();
+          size_t curr = 0;
+          buf << "pango:";
+          for (auto it: *v) {
+            auto s1 = Style::getInstance()->load(std::get<0>(it), "default");
+            buf << "<span font_family=\"" << s1->getFontFamily() << "\" ";
+            buf << "size=\"" << s1->getSize() << "pt\" ";
+            if (i == curr) {
+              buf << "foreground=\"black\" background=\"white\">";
+            } else {
+              buf << "foreground=\"white\" background=\"white\">";
+            }
+            buf << std::get<1>(it) << "</span>";
+            curr++;
           }
-        }
-          
-        Magick::Image frame("1920x1080", "none");
-        int32_t offx = int32_t(frame.columns() - std::get<2>(*payload)->width()) / 2;
-        int32_t offy = int32_t(frame.rows()    - std::get<2>(*payload)->height() - 50);
-        frame.composite(std::get<2>(*payload)->image, offx, offy, Magick::OverCompositeOp);
+              
+          auto style = Style::getInstance()->load( std::get<0>(v->at(i)), "default");
+          text_layer.reset(Text::createFromPango(buf.str(), style->getColor()));
 
-        frame.magick("png32");
-        frame.write(std::get<0>(*payload));
+            if (offy == 0 && text_layer->width() > 0) {
+                offx = int32_t(frame->width() - text_layer->width()) / 2;
+                offy = int32_t(frame->height()- text_layer->height() - 80);
+            }
+
+                
+          for(auto &attr : style->attrs) {
+            switch (std::get<0>(attr)) {
+            case Be::ATTR_OUTLINE:
+              text_layer->outline(std::get<1>(attr), std::get<2>(attr));
+              break;
+                          
+            case Be::ATTR_GLOW:
+              text_layer->glow(std::get<1>(attr), std::get<2>(attr));
+              break;
+                          
+            case Be::ATTR_BG_ROUNDRECT:
+              break;
+                          
+            case Be::ATTR_BG_RECT:
+              auto ret = text_layer->createRectBackground(std::get<1>(attr), std::get<2>(attr));
+              get<0>(bg_offset) = get<0>(ret);
+              get<1>(bg_offset) = get<1>(ret);
+              bg_layer = get<2>(ret);
+              break;
+            }
+          }
+            
+            if (bg_layer) {
+                frame->composite(*bg_layer, offx + get<0>(bg_offset), offy + get<1>(bg_offset));
+            }
+            
+            if (text_layer) {
+                frame->composite(*text_layer, offx, offy);
+            }
+        }
+         frame->save(get<0>(*payload));
+        }, [&img_total, &img_done] {
+          if (img_total > 0) {
+            img_done++;
+            cout << CLS_LINE << "\r";
+            cout << img_done << "/" << img_total;
+            cout.flush();
+          }
+        });
+        
+    //        for (auto it: styled_text) {
+    //            cout << std::get<0>(it) << endl;
+    //            stringstream buf;
+    //            auto s1 = Style::getInstance()->load(std::get<0>(it), "default");
+    //            buf << "<span font_family=\"" << s1->getFontFamily() << "\" ";
+    //            buf << "size=\"" << s1->getSize() << "pt\" ";
+    //            buf << "foreground=\"black\" background=\"white\">";
+    //            buf << std::get<1>(it) << "</span>";
+    //            cout << buf.str() << endl;
+    //        }
+                  
+    //      if (style->getName() != next_style) {
+    //        style = Style::getInstance()->load(next_style);
+    //        image.font(style->getFontPath());
+    //        image.fontPointsize(style->getSize());
+    //      }
+            
+    //      image.fontTypeMetricsMultiline(final_str, &typeMetrics);
+    //      image.size(Magick::Geometry(typeMetrics.textWidth(), typeMetrics.textHeight()));
+    //      image.read("xc:none");
+    //            
+    //      if (style->isBasicColor()) {
+    //        image.fillColor(style->getColor());
+    //      } else {
+    //        image.fillColor("black");
+    //      }
+    //      image.annotate(final_str, Magick::CenterGravity);
+            
+    //      Payload *payload = new Payload();
+    //      std::get<0>(*payload) = buff2;
+    //      std::get<1>(*payload) = style.get();
+    //      std::get<2>(*payload) = new Text(image);
+        
+    /*
+      loop->queueWork([payload] {
+      if (!std::get<1>(*payload)->isBasicColor()) {
+      std::get<2>(*payload)->effect(std::get<1>(*payload)->getColor());
+      }
+
+      for(auto &attr : std::get<1>(*payload)->attrs) {
+      switch (std::get<0>(attr)) {
+      case Be::ATTR_OUTLINE:
+      std::get<2>(*payload)->outline(std::get<1>(attr), std::get<2>(attr));
+      break;
+                      
+      case Be::ATTR_GLOW:
+      std::get<2>(*payload)->glow(std::get<1>(attr), std::get<2>(attr));
+      break;
+      }
+      }
           
-        delete payload;
-        //std::get<2>(*payload)->save(std::get<0>(*payload));
+      Magick::Image frame("1920x1080", "none");
+      int32_t offx = int32_t(frame.columns() - std::get<2>(*payload)->width()) / 2;
+      int32_t offy = int32_t(frame.rows()    - std::get<2>(*payload)->height() - 50);
+      frame.composite(std::get<2>(*payload)->image, offx, offy, Magick::OverCompositeOp);
+
+      frame.magick("png32");
+      frame.write(std::get<0>(*payload));
+          
+      delete payload;
+      //std::get<2>(*payload)->save(std::get<0>(*payload));
       }, [&img_total, &img_done] {
-        if (img_total > 0) {
-          img_done++;
-          cout << CLS_LINE << "\r";
-          cout << img_done << "/" << img_total;
-          cout.flush();
-        }
+      if (img_total > 0) {
+      img_done++;
+      cout << CLS_LINE << "\r";
+      cout << img_done << "/" << img_total;
+      cout.flush();
+      }
       });
-      img_total++;
-    }
-    loop->run();
-    cout << endl;
+    */
+    img_total++;
   }
+  cout << "0/" << img_total;
+  cout.flush();
+  loop->run();
+  cout << endl;
+}
 
-  xml->save();
-  return 0;
+xml->save();
+return 0;
 }

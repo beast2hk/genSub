@@ -11,6 +11,8 @@
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <tuple>
+
 #include <Magick++.h>
 
 class Canvas {
@@ -29,9 +31,13 @@ public:
     void save(std::string filename);
     void size(std::size_t width, std::size_t height);
     void fillColor(std::string color);
+    void stroke(uint32_t width, std::string color);
     void roundRectangle(uint32_t left, uint32_t top,
                         uint32_t width, uint32_t height, uint32_t radius);
-    void composite(const Canvas &src, uint32_t x, uint32_t y);
+    void rectange(uint32_t left, uint32_t top,
+                  uint32_t width, uint32_t height);
+    void composite(const Canvas& src, uint32_t x, uint32_t y);
+    void composite(const Canvas* src, uint32_t x, uint32_t y);
 
 };
 

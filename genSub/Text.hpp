@@ -26,6 +26,8 @@ public:
     void effect(const std::string color);
     void outline(const std::string color, uint32_t width);
     void glow(const std::string color, uint32_t width);
+    void roundRectangle(const std::string color, uint32_t padding);
+    std::tuple<int32_t, int32_t, std::shared_ptr<Canvas>> createRectBackground(const std::string color, uint32_t padding);
 
     //    bool setText(Magick::Image *img, const std::string& color);
     
@@ -35,6 +37,7 @@ public:
 //
 //  bool setText(const std::string str, uint32_t font_size, const std::string color);
 //  void hollow(const std::string color, uint32_t width);
+    static Text* createFromPango(const std::string str, const std::string color); // color can be gradient: or img:
 };
 
 
