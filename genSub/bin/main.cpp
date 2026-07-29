@@ -401,13 +401,21 @@ int main(int argc, const char * argv[]) {
               break;
                           
             case Be::ATTR_BG_ROUNDRECT:
+                {
+                    auto ret = text_layer->createRoundRectBackground(std::get<1>(attr), std::get<2>(attr));
+                    get<0>(bg_offset) = get<0>(ret);
+                    get<1>(bg_offset) = get<1>(ret);
+                    bg_layer = get<2>(ret);
+                }
               break;
                           
             case Be::ATTR_BG_RECT:
-              auto ret = text_layer->createRectBackground(std::get<1>(attr), std::get<2>(attr));
-              get<0>(bg_offset) = get<0>(ret);
-              get<1>(bg_offset) = get<1>(ret);
-              bg_layer = get<2>(ret);
+                {
+                    auto ret = text_layer->createRectBackground(std::get<1>(attr), std::get<2>(attr));
+                    get<0>(bg_offset) = get<0>(ret);
+                    get<1>(bg_offset) = get<1>(ret);
+                    bg_layer = get<2>(ret);
+                }
               break;
             }
           }

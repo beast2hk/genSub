@@ -27,7 +27,9 @@ public:
     void outline(const std::string color, uint32_t width);
     void glow(const std::string color, uint32_t width);
     void roundRectangle(const std::string color, uint32_t padding);
-    std::tuple<int32_t, int32_t, std::shared_ptr<Canvas>> createRectBackground(const std::string color, uint32_t padding);
+    std::tuple<int32_t, int32_t, std::shared_ptr<Canvas>> createRectBackground(const std::string color, uint32_t padding) const;
+    std::tuple<int32_t, int32_t, std::shared_ptr<Canvas>> createRoundRectBackground(const std::string color, uint32_t padding) const;
+
 
     //    bool setText(Magick::Image *img, const std::string& color);
     

@@ -14,7 +14,7 @@
                                  [ "glow", "orange", 3 ], 
                                  [ "outline", "white", 10 ],
 				 [ "outline", "black", 5 ],
-			         [ "background", "rect", "rgba(0,0,255,0.5)", 5] ] 
+			         [ "background", "roundrect", "rgba(0,0,255,0.5)", 5] ] 
                    },
                    { "name"  : "intro2", 
                      "font"  : "CanvaPlayfulBoldTC", 

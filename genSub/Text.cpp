@@ -99,7 +99,7 @@ void Text::outline(const std::string color, uint32_t width) {
   }
 }
 
-std::tuple<int32_t, int32_t, std::shared_ptr<Canvas>> Text::createRectBackground(const std::string color, uint32_t padding) {
+std::tuple<int32_t, int32_t, std::shared_ptr<Canvas>> Text::createRectBackground(const std::string color, uint32_t padding) const {
     uint32_t xoffset, yoffset;
     Geometry boxsize = image.boundingBox();
     std::shared_ptr<Canvas> canvas(new Canvas(boxsize.width() + 2 * padding, boxsize.height() + 2 * padding));
@@ -112,9 +112,24 @@ std::tuple<int32_t, int32_t, std::shared_ptr<Canvas>> Text::createRectBackground
     yoffset = boxsize.yOff() - padding;
     
     return make_tuple(xoffset, yoffset, canvas);
-    
 }
 
+std::tuple<int32_t, int32_t, std::shared_ptr<Canvas>> Text::createRoundRectBackground(const std::string color, uint32_t padding) const {
+    uint32_t xoffset, yoffset, corner;
+    Geometry boxsize = image.boundingBox();
+    std::shared_ptr<Canvas> canvas(new Canvas(boxsize.width() + 2 * padding, boxsize.height() + 2 * padding));
+    
+    corner = std::min(canvas->width(), canvas->height()) / 5;
+    
+    canvas->stroke(0, "none");
+    canvas->fillColor(color);
+    canvas->image.draw(DrawableRoundRectangle(0, 0, canvas->width(), canvas->height(), corner, corner));
+    
+    xoffset = boxsize.xOff() - padding;
+    yoffset = boxsize.yOff() - padding;
+    
+    return make_tuple(xoffset, yoffset, canvas);
+}
 void Text::glow(const std::string color, uint32_t width) {
   char kernel[100];
 
@@ -161,8 +176,6 @@ Text* Text::createFromPango(const std::string str, const std::string color) {
     Image texture_mask, imgText;
     
     imgText.read(str);
-    
-    imgText.write("check.png");
     imgText.negate();
 
     if (color.rfind("gradient:", 0) == 0) {
